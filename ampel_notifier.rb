@@ -20,7 +20,7 @@ class AmpelNotifier
 
   def method_missing(meth, *args, &blk)
     if meth.to_s =~ /build_\w+/
-      activated? and send("_#{meth}", *args)
+      self.activated? and send("_#{meth}", *args)
     else
       super
     end
@@ -29,19 +29,19 @@ class AmpelNotifier
   private
   
     def _build_started(build)
-      Net::HTTP.get @host, '/ampel_server/index?actions[yellow]=On', @port
+      Net::HTTP.get @host, "/ampel_server/change_state?ci[name]=#{build.project.name}&ci[build_state]=building", @port
     end
   
     def _build_finished(build)
-      Net::HTTP.get @host, '/ampel_server/index?actions[yellow]=Off', @port
+      Net::HTTP.get @host, "/ampel_server/change_state?ci[name]=#{build.project.name}&ci[build_state]=good", @port
     end
   
     def _build_fixed(build, previous_build)
-      Net::HTTP.get @host, '/ampel_server/index?actions[red]=Off&actions[green]=On', @port
+      Net::HTTP.get @host, "/ampel_server/change_state?ci[name]=#{build.project.name}&ci[build_state]=good", @port
     end
   
     def _build_broken(build, previous_build)
-      Net::HTTP.get @host, '/ampel_server/index?actions[green]=Off&actions[red]=On&actions[signal]=23', @port
+      Net::HTTP.get @host, "/ampel_server/change_state?ci[name]=#{build.project.name}&ci[build_state]=broken", @port
     end
   
 end
