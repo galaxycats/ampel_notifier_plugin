@@ -17,32 +17,23 @@ class AmpelNotifier
   def activated?
     @activated
   end
-
-  def method_missing(meth, *args, &blk)
-    if meth.to_s =~ /build_\w+/
-      self.activated? and send("_#{meth}", *args)
-    else
-      super
-    end
+  
+  def build_started(build)
+    Net::HTTP.get(@host, "/ampel_server/change_state?ci[project_name]=#{build.project.name}&ci[build_state]=building", @port) if activated?
   end
-  
-  private
-  
-    def _build_started(build)
-      Net::HTTP.get @host, "/ampel_server/change_state?ci[name]=#{build.project.name}&ci[build_state]=building", @port
-    end
-  
-    def _build_finished(build)
-      Net::HTTP.get @host, "/ampel_server/change_state?ci[name]=#{build.project.name}&ci[build_state]=good", @port
-    end
-  
-    def _build_fixed(build, previous_build)
-      Net::HTTP.get @host, "/ampel_server/change_state?ci[name]=#{build.project.name}&ci[build_state]=good", @port
-    end
-  
-    def _build_broken(build, previous_build)
-      Net::HTTP.get @host, "/ampel_server/change_state?ci[name]=#{build.project.name}&ci[build_state]=broken", @port
-    end
+
+  def build_finished(build)
+    status = build.failed? ? "broken" : "good"
+    Net::HTTP.get(@host, "/ampel_server/change_state?ci[project_name]=#{build.project.name}&ci[build_state]=#{status}", @port) if activated?
+  end
+
+  def build_fixed(build, previous_build)
+    Net::HTTP.get(@host, "/ampel_server/change_state?ci[project_name]=#{build.project.name}&ci[build_state]=good", @port) if activated?
+  end
+
+  def build_broken(build, previous_build)
+    Net::HTTP.get(@host, "/ampel_server/change_state?ci[project_name]=#{build.project.name}&ci[build_state]=broken", @port) if activated?
+  end
   
 end
 
